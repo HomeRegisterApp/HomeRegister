@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HomeRegister</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+<h1>HomeRegister</h1>
+
+<!-- TOP BUTTONS -->
+<div>
+  <button onclick="openMenu()">Menu</button>
+  <button onclick="openEdit()">Edit</button>
+</div>
+
+<hr>
+
+<!-- ACCOUNT LIST -->
+<h2>Accounts</h2>
+<ul id="accountList"></ul>
+
+<hr>
+
+<!-- BOTTOM TABS -->
+<div>
+  <button onclick="showHome('checking')">Checking</button>
+  <button onclick="showHome('savings')">Savings</button>
+  <button onclick="showHome('custom')">Custom Accounts</button>
+</div>
+
+<script>
+
+let accounts = [];
+let currentAccount = null;
+
+/* -------------------- SAVE / LOAD -------------------- */
+
+function saveData() {
+  localStorage.setItem("homeRegisterData", JSON.stringify(accounts));
+}
+
+function loadData() {
+  let data = localStorage.getItem("homeRegisterData");
+  if (data) {
+    accounts = JSON.parse(data);
+  } else {
+    accounts = [
+      {
+        name: "Checking Account",
+        type: "checking",
+        balance: 500,
+        transactions: []
+      },
+      {
+        name: "Savings Account",
+        type: "savings",
+        balance: 1200,
+        transactions: []
+      }
+    ];
+  }
+}
+
+/* -------------------- HOME SCREEN -------------------- */
+
+function showHome(type = "checking") {
+  document.body.innerHTML = `
+    <h1>HomeRegister</h1>
+
+    <button onclick="openMenu()">Menu</button>
+    <button onclick="openEdit()">Edit</button>
+
+    <h2>Accounts</h2>
+    <ul id="accountList"></ul>
+
+    <hr>
+
+    <button onclick="showHome('checking')">Checking</button>
+    <button onclick="showHome('savings')">Savings</button>
+    <button onclick="showHome('custom')">Custom Accounts</button>
+  `;
+
+  let list = document.getElementById("accountList");
+
+  accounts
+    .filter(acc => acc.type === type)
+    .forEach(acc => {
+      let li = document.createElement("li");
+
+      let btn = document.createElement("button");
+      btn.innerText = acc.name + " balance: $" + acc.balance;
+      btn.onclick = () => openAccount(acc);
+
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+}
+
+/* -------------------- ACCOUNT SCREEN -------------------- */
+
+function openAccount(account) {
+  currentAccount = account;
+
+  document.body.innerHTML = `
+    <button onclick="showHome()">Back</button>
+
+    <h2>${account.name}</h2>
+
+    <button onclick="sortTransactions()">Arrange By</button>
+
+    <h3>Transactions</h3>
+    <ul id="transactions"></ul>
+
+    <button onclick="openTransactionForm()">Deposit / Debit</button>
+  `;
+
+  updateTransactions();
+}
+
+function updateTransactions() {
+  let list = document.getElementById("transactions");
+  list.innerHTML = "";
+
+  currentAccount.transactions.forEach((t, index) => {
+    let li = document.createElement("li");
+
+    let btn = document.createElement("button");
+    btn.innerText =
+      `${t.date} | ${t.type} | $${t.amount} | ${t.to} | ${t.for}`;
+
+    btn.onclick = () => deleteTransaction(index);
+
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+/* -------------------- TRANSACTIONS -------------------- */
+
+function openTransactionForm() {
+  document.body.innerHTML = `
+    <h2>Add Transaction</h2>
+
+    <label>Amount</label><br>
+    <input id="amount"><br><br>
+
+    <label>Date</label><br>
+    <input id="date"><br><br>
+
+    <label>To Whom</label><br>
+    <input id="to"><br><br>
+
+    <label>For What</label><br>
+    <input id="for"><br><br>
+
+    <label>Type</label><br>
+    <select id="type">
+      <option value="Deposit">Deposit</option>
+      <option value="Debit">Debit</option>
+    </select><br><br>
+
+    <button onclick="submitTransaction()">Submit</button>
+    <button onclick="openAccount(currentAccount)">Cancel</button>
+  `;
+}
+
+function submitTransaction() {
+  let amount = document.getElementById("amount").value;
+  let date = document.getElementById("date").value;
+  let to = document.getElementById("to").value;
+  let forWhat = document.getElementById("for").value;
+  let type = document.getElementById("type").value;
+
+  if (!amount || !date || !to || !forWhat || !type) {
+    alert("All fields are required");
+    return;
+  }
+
+  currentAccount.transactions.push({
+    amount,
+    date,
+    to,
+    for: forWhat,
+    type
+  });
+
+  if (type === "Deposit") {
+    currentAccount.balance += Number(amount);
+  } else {
+    currentAccount.balance -= Number(amount);
+  }
+
+  saveData();
+  openAccount(currentAccount);
+}
+
+function deleteTransaction(index) {
+  if (confirm("Delete this transaction?")) {
+    currentAccount.transactions.splice(index, 1);
+    saveData();
+    openAccount(currentAccount);
+  }
+}
+
+/* -------------------- MENU -------------------- */
+
+function openMenu() {
+  document.body.innerHTML = `
+    <button onclick="showHome()">Back</button>
+
+    <h1>Menu</h1>
+
+    <h2>Credit Bureaus</h2>
+    <ul>
+      <li><a href="https://www.experian.com" target="_blank">Experian</a></li>
+      <li><a href="https://www.transunion.com" target="_blank">TransUnion</a></li>
+      <li><a href="https://www.equifax.com" target="_blank">Equifax</a></li>
+    </ul>
+
+    <h2>Bank</h2>
+    <ul>
+      <li><a href="https://www.yourbank.com" target="_blank">Open Bank Account</a></li>
+    </ul>
+  `;
+}
+
+/* -------------------- EDIT ACCOUNTS -------------------- */
+
+function openEdit() {
+  document.body.innerHTML = `
+    <button onclick="showHome()">Back</button>
+
+    <h1>Edit Accounts</h1>
+
+    <h2>Create New Account</h2>
+
+    <label>Account Name</label><br>
+    <input id="newName"><br><br>
+
+    <label>Account Type</label><br>
+    <select id="newType">
+      <option value="checking">Checking</option>
+      <option value="savings">Savings</option>
+      <option value="custom">Custom</option>
+    </select><br><br>
+
+    <button onclick="createAccount()">Create Account</button>
+
+    <hr>
+
+    <h2>Existing Accounts</h2>
+    <ul id="editList"></ul>
+  `;
+
+  updateEditList();
+}
+
+function updateEditList() {
+  let list = document.getElementById("editList");
+  list.innerHTML = "";
+
+  accounts.forEach((acc, index) => {
+    let li = document.createElement("li");
+
+    li.innerHTML = `
+      ${acc.name}
+      <button onclick="renameAccount(${index})">Rename</button>
+      <button onclick="deleteAccount(${index})">Delete</button>
+    `;
+
+    list.appendChild(li);
+  });
+}
+
+function createAccount() {
+  let name = document.getElementById("newName").value;
+  let type = document.getElementById("newType").value;
+
+  if (!name) {
+    alert("Name required");
+    return;
+  }
+
+  accounts.push({
+    name,
+    type,
+    balance: 0,
+    transactions: []
+  });
+
+  saveData();
+  openEdit();
+}
+
+function renameAccount(index) {
+  let newName = prompt("New name:");
+  if (!newName) return;
+
+  accounts[index].name = newName;
+  saveData();
+  updateEditList();
+}
+
+function deleteAccount(index) {
+  if (confirm("Delete this account?")) {
+    accounts.splice(index, 1);
+    saveData();
+    updateEditList();
+  }
+}
+
+/* -------------------- INIT -------------------- */
+
+loadData();
+showHome();
+
+</script>
+
+</body>
+</html>
